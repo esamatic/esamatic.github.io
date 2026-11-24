@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sanakoe: Where’s Basil?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6FAFF; --grid:#D7E5F6; --ink:#1B2B5E; --muted:#56668F;
+  --card:#FFFFFF; --line:#C4D6EE; --field:#F3F7FD;
+  --good:#16904E; --good-bg:#E2F5E9; --bad:#D0333E; --bad-bg:#FDE7E9;
+  --sun:#FFC83D; --sun-ink:#4A3000; --accent:#2F62E8; --accent-ink:#FFFFFF;
+  --note:#7A4E00; --note-bg:#FFF3D1;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111930; --grid:#1C2844; --ink:#E7EEFF; --muted:#9DADD2;
+    --card:#18223C; --line:#2E3E63; --field:#111A31;
+    --good:#4ED68C; --good-bg:#13301F; --bad:#FF6F78; --bad-bg:#3A1920;
+    --sun:#FFC83D; --sun-ink:#2B1C00; --accent:#7AA2FF; --accent-ink:#0C1631;
+    --note:#FFD47E; --note-bg:#33280F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111930; --grid:#1C2844; --ink:#E7EEFF; --muted:#9DADD2;
+  --card:#18223C; --line:#2E3E63; --field:#111A31;
+  --good:#4ED68C; --good-bg:#13301F; --bad:#FF6F78; --bad-bg:#3A1920;
+  --sun:#FFC83D; --sun-ink:#2B1C00; --accent:#7AA2FF; --accent-ink:#0C1631;
+  --note:#FFD47E; --note-bg:#33280F;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; min-height:100%;
+  font-family:"Nunito",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--ink);
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:24px 24px;
+  line-height:1.5;
+}
+main{max-width:640px; margin:0 auto; padding:20px 16px 40px}
+h1{
+  font-family:"Baloo 2","Nunito",system-ui,sans-serif; font-weight:800;
+  font-size:clamp(2.2rem,8vw,3.4rem); line-height:1; margin:8px 0 2px;
+  letter-spacing:-.01em;
+}
+h1 .q{display:inline-block; color:var(--sun); transform:rotate(12deg); -webkit-text-stroke:2px var(--ink)}
+.sub{margin:0 0 18px; color:var(--muted); font-weight:700}
+
+.tabs{display:flex; gap:6px; background:var(--card); border:2px solid var(--line); border-radius:14px; padding:5px}
+.tabs button{
+  flex:1; font:inherit; font-weight:800; border:0; border-radius:10px; padding:10px 8px;
+  background:transparent; color:var(--muted); cursor:pointer;
+}
+.tabs button[aria-selected="true"]{background:var(--accent); color:var(--accent-ink)}
+
+.score{display:flex; gap:8px; align-items:center; margin:14px 0 10px; flex-wrap:wrap}
+.chip{border-radius:999px; padding:4px 12px; font-weight:800; font-size:.95rem; border:2px solid transparent}
+.chip.good{background:var(--good-bg); color:var(--good)}
+.chip.bad{background:var(--bad-bg); color:var(--bad)}
+.chip.pos{background:var(--card); border-color:var(--line); color:var(--muted)}
+.streak{font-weight:800; color:var(--note)}
+.spacer{flex:1}
+.icon-btn{font:inherit; background:var(--card); border:2px solid var(--line); color:var(--ink); border-radius:10px; padding:4px 10px; cursor:pointer}
+
+.card{
+  position:relative; background:var(--card); border:3px solid var(--ink);
+  border-radius:20px 6px 20px 6px; padding:22px 20px 20px;
+  box-shadow:6px 6px 0 var(--ink);
+  transition:border-color .2s, box-shadow .2s;
+}
+.card.is-good{border-color:var(--good); box-shadow:6px 6px 0 var(--good)}
+.card.is-bad{border-color:var(--bad); box-shadow:6px 6px 0 var(--bad)}
+.card.pop{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
+.card.shake{animation:shake .35s}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.04) rotate(-.6deg)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+
+.bar{height:8px; background:var(--field); border-radius:99px; overflow:hidden; margin-bottom:16px}
+.bar>i{display:block; height:100%; width:0; background:var(--sun); transition:width .3s}
+
+.ask{color:var(--muted); font-weight:700; margin:0}
+.word{
+  font-family:"Baloo 2","Nunito",system-ui,sans-serif; font-weight:800;
+  font-size:clamp(2rem,9vw,3rem); line-height:1.1; margin:4px 0 2px; word-break:break-word;
+}
+.meta{display:flex; gap:10px; align-items:center; min-height:1.6em; color:var(--muted)}
+.ipa{font-family:"Doulos SIL","Charis SIL","Lucida Sans Unicode","Segoe UI",sans-serif}
+.hint{color:var(--note); font-weight:700; font-size:.95rem}
+.say{font:inherit; font-size:.9rem; font-weight:700; background:var(--field); color:var(--ink); border:2px solid var(--line); border-radius:999px; padding:2px 10px; cursor:pointer}
+
+.answer-row{display:flex; gap:8px; margin-top:16px}
+input[type=text]{
+  flex:1; min-width:0; font:inherit; font-size:1.3rem; font-weight:700;
+  padding:12px 14px; border-radius:12px; border:2px solid var(--line);
+  background:var(--field); color:var(--ink);
+}
+input[type=text]:focus{outline:3px solid var(--sun); outline-offset:1px; border-color:var(--ink)}
+input[type=text]:disabled{opacity:.6}
+
+.btn{
+  font:inherit; font-weight:800; font-size:1.05rem; cursor:pointer;
+  border-radius:12px; padding:12px 18px; border:2px solid var(--ink);
+  background:var(--accent); color:var(--accent-ink);
+}
+.btn.ghost{background:var(--card); color:var(--ink)}
+.btn.sun{background:var(--sun); color:var(--sun-ink); border-color:var(--sun-ink)}
+.btn:focus-visible,.tabs button:focus-visible,.icon-btn:focus-visible,.say:focus-visible{outline:3px solid var(--sun); outline-offset:2px}
+.btn:active{transform:translateY(2px)}
+
+.feedback{margin-top:16px; border-radius:12px; padding:12px 14px; font-weight:700; display:none}
+.feedback.show{display:block}
+.feedback.good{background:var(--good-bg); color:var(--good)}
+.feedback.bad{background:var(--bad-bg); color:var(--bad)}
+.feedback .big{font-family:"Baloo 2","Nunito",sans-serif; font-size:1.6rem; font-weight:800; line-height:1.1}
+.note{margin-top:8px; background:var(--note-bg); color:var(--note); border-radius:10px; padding:8px 10px; font-weight:700}
+.actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px}
+
+.stamp{
+  position:absolute; right:14px; top:-18px; pointer-events:none;
+  font-family:"Baloo 2","Nunito",sans-serif; font-weight:800; font-size:1.4rem;
+  background:var(--sun); color:var(--sun-ink); border:3px solid var(--sun-ink);
+  border-radius:12px; padding:2px 12px; transform:rotate(8deg) scale(0); opacity:0;
+}
+.stamp.on{animation:stamp .9s ease-out forwards}
+@keyframes stamp{0%{transform:rotate(-20deg) scale(2.2);opacity:0}25%{transform:rotate(8deg) scale(1);opacity:1}80%{opacity:1}100%{transform:rotate(8deg) scale(1);opacity:0}}
+
+.done h2{font-family:"Baloo 2","Nunito",sans-serif; font-size:2.2rem; margin:0 0 6px; line-height:1.1}
+.done ul{padding-left:1.2em; margin:8px 0 0}
+.done li{margin:2px 0}
+
+.foot{margin-top:22px; display:flex; justify-content:center}
+#fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:50}
+
+@media (prefers-reduced-motion: reduce){
+  .card.pop,.card.shake{animation:none}
+  .stamp.on{animation:none; opacity:1; transform:rotate(8deg) scale(1)}
+}
+</style>
+</head>
+<body>
+<canvas id="fx" aria-hidden="true"></canvas>
+<main>
+  <h1>Where’s Basil<span class="q">?</span></h1>
+  <p class="sub">Sanakoe, kappale 6</p>
+
+  <div class="tabs" role="tablist" aria-label="Harjoitussuunta">
+    <button role="tab" id="tab-fi2en" aria-selected="true">Suomi → englanti</button>
+    <button role="tab" id="tab-en2fi" aria-selected="false">Englanti → suomi</button>
+  </div>
+
+  <div class="score" aria-live="polite">
+    <span class="chip good" id="s-right">Oikein 0</span>
+    <span class="chip bad" id="s-wrong">Väärin 0</span>
+    <span class="chip pos" id="s-pos">1/29</span>
+    <span class="streak" id="s-streak"></span>
+    <span class="spacer"></span>
+    <button class="icon-btn" id="mute" aria-pressed="false" title="Äänet päälle tai pois">🔊 Äänet</button>
+  </div>
+
+  <section class="card" id="card">
+    <div class="stamp" id="stamp">Oikein!</div>
+    <div class="bar"><i id="bar"></i></div>
+    <div id="quiz">
+      <p class="ask" id="ask">Kirjoita englanniksi:</p>
+      <div class="word" id="word"></div>
+      <div class="meta"><span class="ipa" id="ipa"></span><span class="hint" id="hint"></span><button class="say" id="say" hidden>🔊 Kuuntele</button></div>
+      <div class="answer-row">
+        <input type="text" id="answer" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Vastaus">
+        <button class="btn" id="check">Tarkista</button>
+      </div>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+      <div class="actions" id="actions"></div>
+    </div>
+    <div class="done" id="done" hidden></div>
+  </section>
+
+  <div class="foot"><button class="btn ghost" id="restart">↺ Aloita alusta</button></div>
+</main>
+
+<script>
+const WORDS = [
+  {en:"Where’s Basil?", enAcc:["where's basil","where is basil"], fi:"Missä Basil on?", ipa:"/weəz bæzl/"},
+  {en:"a bedroom", fi:"makuuhuone", ipa:"/bedruːm/"},
+  {en:"a tablet", fi:"tabletti", ipa:"/tæblit/"},
+  {en:"with her", fi:"hänen (tytön) kanssaan", fiAcc:["hänen kanssaan","hänen tytön kanssaan"], ipa:"/wið həː(r)/"},
+  {en:"talk", fi:"puhua", ipa:"/tɔːk/"},
+  {en:"America calling!", fi:"Amerikka kutsuu!", ipa:"/əˈmerikə kɔːliŋ/"},
+  {en:"new", fi:"uusi", ipa:"/njuː/"},
+  {en:"a laptop", fi:"läppäri, kannettava tietokone", fiAcc:["läppäri","kannettava tietokone","kannettava","läppäri kannettava tietokone"], ipa:"/læptɒp/"},
+  {en:"cool", fi:"siistiä", ipa:"/kuːl/"},
+  {en:"sound", fi:"ääni", ipa:"/saund/"},
+  {en:"many", fi:"monta", ipa:"/meni/"},
+  {en:"everything", fi:"kaikki", ipa:"/evriθiŋ/"},
+  {en:"gigantic", fi:"valtava", ipa:"/dʒaiˈgæntik/"},
+  {en:"like that", fi:"tuollainen", ipa:"/laik ðæt/"},
+  {en:"amazing", fi:"uskomaton", ipa:"/əˈmeiziŋ/"},
+  {en:"great", fi:"hieno", ipa:"/greit/"},
+  {en:"over there", fi:"tuolla", ipa:"/əuvə ðeə(r)/"},
+  {en:"magic", fi:"taika-, taikuus", fiAcc:["taika","taikuus","taika taikuus"], ipa:"/mædʒik/"},
+  {en:"what about", fi:"entä", ipa:"/wɒt əˈbaut/"},
+  {en:"there", fi:"siellä", ipa:"/ðeə(r)/"},
+  {en:"both", fi:"molemmat", ipa:"/bəuθ/"},
+  {en:"all", fi:"kaikki", ipa:"/ɔːl/"},
+  {en:"a lab", fi:"laboratorio", ipa:"/læb/"},
+  {en:"right", fi:"oikea, oikeassa", fiAcc:["oikea","oikeassa","oikea oikeassa"], ipa:"/rait/"},
+  {en:"use", fi:"käyttää", ipa:"/juːz/"},
+  {en:"make", fi:"tehdä", ipa:"/meik/"},
+  {en:"a thing", fi:"asia", ipa:"/θiŋ/"},
+  {en:"at home", fi:"kotona", ipa:"/æt ˈhəum/"},
+  {en:"hear", fi:"kuulla", ipa:"/hiə(r)/"},
+];
+
+const norm = s => s.toLowerCase()
+  .replace(/[’‘`´]/g, "'")
+  .replace(/[.,!?;:()"“”–-]/g, " ")
+  .replace(/\s+/g, " ").trim();
+
+WORDS.forEach(w => {
+  w.enList = (w.enAcc || [w.en]).map(norm);
+  w.fiList = (w.fiAcc || [w.fi]).map(norm);
+});
+
+const PRAISE = ["Oikein!","Hienoa!","Mahtavaa!","Loistavaa!","Täsmälleen!","Great!","Super!","Cool!"];
+const ART = /^(a|an|the) /;
+
+// Englanninkielisen vastauksen tarkistus artikkelisäännöin
+function checkEnglish(input, targets) {
+  const u = norm(input);
+  for (const t of targets) if (t.n === u) return {ok:true};
+  const uArt = (u.match(ART) || [])[1], uCore = u.replace(ART, "");
+  for (const t of targets) {
+    const tArt = (t.n.match(ART) || [])[1], tCore = t.n.replace(ART, "");
+    if (uCore !== tCore) continue;
+    if (tArt && !uArt) return {ok:true, note:`Muista artikkeli: <b>${t.d}</b>`};
+    if (tArt && uArt !== tArt) return {ok:true, note:`Tässä artikkeli on <b>${tArt}</b>: <b>${t.d}</b>`};
+    if (!tArt && uArt) return {ok:true, note:`Tähän sanaan ei tarvita artikkelia: <b>${t.d}</b>`};
+  }
+  return {ok:false};
+}
+
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const newRun = (ids = WORDS.map((_, i) => i)) => ({queue: shuffle(ids.slice()), i:0, tries:0, right:0, wrong:0, streak:0, phase:"ask", missed:new Set()});
+
+const state = {mode:"fi2en", fi2en:newRun(), en2fi:newRun(), sound:true};
+const $ = id => document.getElementById(id);
+const run = () => state[state.mode];
+const cur = () => WORDS[run().queue[run().i]];
+
+function targetsFor(w) {
+  if (state.mode === "fi2en") {
+    // Sama suomenkielinen sana voi vastata useampaa englannin sanaa (kaikki = everything / all)
+    return WORDS.filter(x => x.fi === w.fi).flatMap(x => x.enList.map(n => ({n, d:x.en})));
+  }
+  return w.fiList.map(n => ({n, d:w.fi}));
+}
+function correctText(w) {
+  if (state.mode === "fi2en") {
+    const others = WORDS.filter(x => x.fi === w.fi && x !== w).map(x => x.en);
+    return `<b>${w.en}</b>` + (others.length ? ` (käy myös: ${others.join(", ")})` : "");
+  }
+  return `<b>${w.fi}</b>`;
+}
+
+function render() {
+  const r = run(), total = r.queue.length;
+  $("tab-fi2en").setAttribute("aria-selected", state.mode === "fi2en");
+  $("tab-en2fi").setAttribute("aria-selected", state.mode === "en2fi");
+  $("s-right").textContent = `Oikein ${r.right}`;
+  $("s-wrong").textContent = `Väärin ${r.wrong}`;
+  $("s-pos").textContent = `${Math.min(r.i + 1, total)}/${total}`;
+  $("s-streak").textContent = r.streak >= 3 ? `🔥 ${r.streak} putkeen` : "";
+  $("bar").style.width = `${(r.i / total) * 100}%`;
+  const card = $("card");
+  card.classList.toggle("is-good", r.phase === "solved");
+  card.classList.toggle("is-bad", r.phase === "wrong" || r.phase === "revealed");
+
+  if (r.phase === "done") { $("quiz").hidden = true; $("done").hidden = false; renderDone(); return; }
+  $("quiz").hidden = false; $("done").hidden = true;
+
+  const w = cur(), fi2en = state.mode === "fi2en";
+  $("ask").textContent = fi2en ? "Kirjoita englanniksi:" : "Kirjoita suomeksi:";
+  $("word").textContent = fi2en ? w.fi : w.en;
+  const shown = !fi2en || r.phase === "solved" || r.phase === "revealed";
+  $("ipa").textContent = shown ? w.ipa : "";
+  $("say").hidden = !shown || !("speechSynthesis" in window);
+  $("hint").textContent = fi2en && WORDS.filter(x => x.fi === w.fi).length > 1 && !shown ? "Tähän käy kaksi eri sanaa." : "";
+
+  const inp = $("answer"), open = r.phase === "ask" || r.phase === "wrong";
+  inp.disabled = !open; $("check").disabled = !open;
+  $("check").hidden = !open;
+
+  const act = $("actions"); act.innerHTML = "";
+  if (r.phase === "wrong") {
+    act.append(button("Yritä uudelleen", "btn ghost", () => { inp.value = ""; inp.focus(); }));
+    act.append(button("Näytä oikea vastaus", "btn sun", reveal));
+  }
+  if (r.phase === "solved" || r.phase === "revealed") {
+    const nb = button(r.i + 1 < total ? "Seuraava sana" : "Katso tulos", "btn", next);
+    act.append(nb);
+    setTimeout(() => nb.focus(), 120);
+  }
+}
+
+function button(text, cls, fn) { const b = document.createElement("button"); b.className = cls; b.textContent = text; b.onclick = fn; return b; }
+
+function feedback(kind, html) {
+  const f = $("feedback");
+  f.className = "feedback show " + kind;
+  f.innerHTML = html;
+}
+function clearFeedback() { $("feedback").className = "feedback"; $("feedback").innerHTML = ""; }
+
+function submit() {
+  const r = run();
+  if (r.phase !== "ask" && r.phase !== "wrong") return;
+  const inp = $("answer"), val = inp.value;
+  if (!norm(val)) { bump("shake"); inp.focus(); return; }
+  const w = cur();
+  const res = state.mode === "fi2en"
+    ? checkEnglish(val, targetsFor(w))
+    : {ok: targetsFor(w).some(t => t.n === norm(val))};
+
+  if (res.ok) {
+    r.right++; r.streak++; r.phase = "solved";
+    const praise = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+    feedback("good", `<div class="big">${praise}</div>${state.mode === "fi2en" ? w.en : w.fi}` + (res.note ? `<div class="note">${res.note}</div>` : ""));
+    celebrate(praise);
+    if (state.mode === "fi2en") setTimeout(() => speak(w.en), 700);
+  } else {
+    r.wrong++; r.streak = 0; r.tries++; r.missed.add(r.queue[r.i]);
+    playLose(); bump("shake");
+    if (r.tries >= 2) {
+      r.phase = "revealed";
+      feedback("bad", `<div class="big">Ei vielä.</div>Oikea vastaus: ${correctText(w)}`);
+    } else {
+      r.phase = "wrong";
+      feedback("bad", `<div class="big">Ei ihan.</div>Yritä vielä kerran tai katso oikea vastaus.`);
+      inp.select();
+    }
+  }
+  render();
+}
+
+function reveal() {
+  const r = run(); r.phase = "revealed";
+  feedback("bad", `Oikea vastaus: ${correctText(cur())}`);
+  render();
+}
+
+function next() {
+  const r = run();
+  r.i++; r.tries = 0;
+  r.phase = r.i >= r.queue.length ? "done" : "ask";
+  $("answer").value = ""; clearFeedback(); render();
+  if (r.phase === "ask") $("answer").focus();
+  if (r.phase === "done" && r.missed.size === 0) setTimeout(() => celebrate("Täydellinen!", true), 200);
+}
+
+function renderDone() {
+  const r = run(), total = r.queue.length;
+  const firstTry = total - r.missed.size;
+  const list = [...r.missed].map(i => `<li><b>${WORDS[i].en}</b> = ${WORDS[i].fi}</li>`).join("");
+  const d = $("done");
+  d.innerHTML = `
+    <h2>${r.missed.size === 0 ? "Kaikki oikein! 🎉" : "Valmis!"}</h2>
+    <p>${firstTry}/${total} sanaa meni ensimmäisellä yrityksellä. Vastauksia oikein ${r.right}, väärin ${r.wrong}.</p>
+    ${list ? `<p><b>Harjoittele vielä näitä:</b></p><ul>${list}</ul>` : ""}
+    <div class="actions" id="done-actions"></div>`;
+  const a = d.querySelector("#done-actions");
+  if (r.missed.size) a.append(button("Harjoittele virheelliset", "btn sun", () => { state[state.mode] = newRun([...r.missed]); start(); }));
+  a.append(button("Aloita alusta", "btn", restart));
+}
+
+function start() { $("answer").value = ""; clearFeedback(); render(); if (run().phase === "ask") $("answer").focus(); }
+function restart() { state[state.mode] = newRun(); start(); }
+function setMode(m) { state.mode = m; clearFeedback(); render(); if (run().phase === "ask" || run().phase === "wrong") $("answer").focus(); }
+
+function bump(cls) {
+  const c = $("card"); c.classList.remove("pop", "shake"); void c.offsetWidth; c.classList.add(cls);
+}
+
+// ---------- Ääni ----------
+let ctx = null;
+function ac() {
+  if (!ctx) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ctx = new C(); }
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function tone(f, t0, dur, type = "triangle", vol = .18) {
+  const c = ac(); if (!c) return;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  g.gain.setValueAtTime(.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + .02);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  o.connect(g).connect(c.destination); o.start(t0); o.stop(t0 + dur + .05);
+}
+function playWin(big) {
+  if (!state.sound) return; const c = ac(); if (!c) return; const t = c.currentTime;
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, t + i * .085, .35));
+  [1568, 2093, 2637].forEach((f, i) => tone(f, t + .38 + i * .06, .3, "sine", .07));
+  if (big) [523.25, 659.25, 783.99, 1046.5].forEach(f => tone(f, t + .7, 1.0, "triangle", .1));
+}
+function playLose() {
+  if (!state.sound) return; const c = ac(); if (!c) return; const t = c.currentTime;
+  tone(330, t, .16, "sine", .12); tone(247, t + .14, .3, "sine", .12);
+}
+function speak(text) {
+  if (!state.sound || !("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/’/g, "'"));
+  u.lang = "en-GB"; u.rate = .9;
+  speechSynthesis.speak(u);
+}
+
+// ---------- Konfetti ----------
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cv = $("fx"), cx = cv.getContext("2d");
+let parts = [], raf = null;
+function resize() { const d = devicePixelRatio || 1; cv.width = innerWidth * d; cv.height = innerHeight * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+addEventListener("resize", resize); resize();
+const COLORS = ["#FFC83D", "#2F62E8", "#16904E", "#FF6F78", "#9B5DE5", "#00BBF9"];
+function burst(x, y, n, spread, up) {
+  for (let k = 0; k < n; k++) parts.push({
+    x, y, vx:(Math.random() - .5) * spread, vy:-Math.random() * up - 3,
+    r:Math.random() * 6 + 4, rot:Math.random() * 6, vr:(Math.random() - .5) * .35,
+    c:COLORS[k % COLORS.length], round:Math.random() < .3, life:0
+  });
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+function tick() {
+  cx.clearRect(0, 0, innerWidth, innerHeight);
+  for (const p of parts) {
+    p.vx *= .99; p.vy += .32; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life++;
+    cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.fillStyle = p.c;
+    if (p.round) { cx.beginPath(); cx.arc(0, 0, p.r / 2, 0, 7); cx.fill(); }
+    else cx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2);
+    cx.restore();
+  }
+  parts = parts.filter(p => p.y < innerHeight + 40 && p.life < 260);
+  raf = parts.length ? requestAnimationFrame(tick) : null;
+  if (!raf) cx.clearRect(0, 0, innerWidth, innerHeight);
+}
+function celebrate(text, big = false) {
+  playWin(big);
+  bump("pop");
+  const s = $("stamp"); s.textContent = text; s.classList.remove("on"); void s.offsetWidth; s.classList.add("on");
+  const b = $("card").getBoundingClientRect();
+  const n = reduce ? 25 : (big ? 220 : 120);
+  burst(b.left + b.width / 2, b.top + 40, n, 14, 12);
+  if (!reduce) {
+    burst(0, innerHeight, big ? 80 : 40, 14, 18);
+    burst(innerWidth, innerHeight, big ? 80 : 40, 14, 18);
+  }
+}
+
+// ---------- Kytkennät ----------
+$("check").onclick = submit;
+$("answer").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); submit(); } });
+$("restart").onclick = restart;
+$("tab-fi2en").onclick = () => setMode("fi2en");
+$("tab-en2fi").onclick = () => setMode("en2fi");
+$("say").onclick = () => speak(cur().en);
+$("mute").onclick = () => {
+  state.sound = !state.sound;
+  $("mute").textContent = state.sound ? "🔊 Äänet" : "🔇 Äänet pois";
+  $("mute").setAttribute("aria-pressed", !state.sound);
+  if (!state.sound && "speechSynthesis" in window) speechSynthesis.cancel();
+};
+start();
+</script>
+</body>
+</html>
